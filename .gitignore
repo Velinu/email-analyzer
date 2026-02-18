@@ -1,0 +1,17 @@
+# JetBrains IDEs
+.idea/
+
+# Python virtual environment
+.venv/
+
+
+
+# Python version file
+.python-version
+
+# Environment variables
+.env.example
+
+# Python artifacts
+__pycache__/
+*.pyc
