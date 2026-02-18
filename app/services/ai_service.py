@@ -8,30 +8,28 @@ from langchain_core.runnables import RunnablePassthrough
 from pydantic import BaseModel, Field
 import logging
 
-load_dotenv() # Load environment variables from .env
+load_dotenv()
 
-# Initialize the LLM
 try:
     GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
     if not GOOGLE_API_KEY:
         raise ValueError("GOOGLE_API_KEY environment variable not set.")
     
     llm = ChatGoogleGenerativeAI(
-        model="gemini-1.5-flash", # Using gemini-1.5-flash for cost-effectiveness
+        model="gemini-2.5-flash",
         google_api_key=GOOGLE_API_KEY,
         temperature=0.7,
-        safety_settings=[
-            {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_LOW_AND_ABOVE"},
-            {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_LOW_AND_ABOVE"},
-            {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_LOW_AND_ABOVE"},
-            {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_LOW_AND_ABOVE"},
-        ]
+        # safety_settings=[
+        #     {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_LOW_AND_ABOVE"},
+        #     {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_LOW_AND_ABOVE"},
+        #     {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_LOW_AND_ABOVE"},
+        #     {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_LOW_AND_ABOVE"},
+        # ]
     )
 except ValueError as e:
     logging.error(f"Error initializing LLM: {e}")
     llm = None
 
-# Define the expected output schema
 class EmailAnalysisOutput(BaseModel):
     subject: str = Field(description="The subject of the email.")
     sender: str = Field(description="The sender of the email.")
@@ -55,7 +53,6 @@ prompt_template = ChatPromptTemplate.from_messages(
         ]
     )
 
-# Create a chain
 if llm:
     chain = (
         {

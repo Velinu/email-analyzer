@@ -4,7 +4,7 @@
 # Python virtual environment
 .venv/
 
-
+.env
 
 # Python version file
 .python-version

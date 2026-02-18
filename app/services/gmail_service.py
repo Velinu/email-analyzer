@@ -8,7 +8,6 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 import logging
 
-# If modifying these scopes, delete the file token.json.
 SCOPES = ["https://mail.google.com/"]
 
 def get_gmail_credentials():
@@ -36,42 +35,42 @@ def get_gmail_service():
         logging.error(f"An error occurred: {error}")
         return None
 
-def get_unread_emails(service):
+def get_first_unread_email(service):
     try:
-        results = service.users().messages().list(userId='me', q='is:unread').execute()
+        results = service.users().messages().list(userId='me', q='is:unread', maxResults=1).execute()
         messages = results.get('messages', [])
 
-        email_data = []
-        for message in messages:
-            msg = service.users().messages().get(userId='me', id=message['id'], format='full').execute()
-            headers = msg['payload']['headers']
-            
-            subject = next((header['value'] for header in headers if header['name'] == 'Subject'), 'No Subject')
-            sender = next((header['value'] for header in headers if header['name'] == 'From'), 'Unknown Sender')
+        if not messages:
+            return None
 
-            # Get email body
-            body = ''
-            if 'parts' in msg['payload']:
-                for part in msg['payload']['parts']:
-                    if part['mimeType'] == 'text/plain':
-                        body = base64.urlsafe_b64decode(part['body']['data']).decode('utf-8')
-                        break
-                    elif part['mimeType'] == 'text/html':
-                        # Optionally handle HTML part, or just use plain text
-                        pass
-            elif 'body' in msg['payload'] and 'data' in msg['payload']['body']:
-                body = base64.urlsafe_b64decode(msg['payload']['body']['data']).decode('utf-8')
+        message = messages[0]
+        msg = service.users().messages().get(userId='me', id=message['id'], format='full').execute()
+        headers = msg['payload']['headers']
+        
+        subject = next((header['value'] for header in headers if header['name'] == 'Subject'), 'No Subject')
+        sender = next((header['value'] for header in headers if header['name'] == 'From'), 'Unknown Sender')
 
-            email_data.append({
-                "id": message['id'],
-                "subject": subject,
-                "sender": sender,
-                "body": body
-            })
+        body = ''
+        if 'parts' in msg['payload']:
+            for part in msg['payload']['parts']:
+                if part['mimeType'] == 'text/plain':
+                    body = base64.urlsafe_b64decode(part['body']['data']).decode('utf-8')
+                    break
+                elif part['mimeType'] == 'text/html':
+                    pass
+        elif 'body' in msg['payload'] and 'data' in msg['payload']['body']:
+            body = base64.urlsafe_b64decode(msg['payload']['body']['data']).decode('utf-8')
+
+        email_data = {
+            "id": message['id'],
+            "subject": subject,
+            "sender": sender,
+            "body": body
+        }
         return email_data
     except HttpError as error:
         logging.error(f"An error occurred: {error}")
-        return []
+        return None
 
 def mark_email_as_read(service, msg_id):
     try:
@@ -82,12 +81,3 @@ def mark_email_as_read(service, msg_id):
 
 if __name__ == "__main__":
     service = get_gmail_service()
-    if service:
-        # Example: Get and print unread emails
-        emails = get_unread_emails(service)
-        if emails:
-            logging.info(f"Found {len(emails)} unread emails.")
-            for email in emails:
-                logging.info(f"Subject: {email['subject']}")
-        else:
-            print("No unread emails found.")
